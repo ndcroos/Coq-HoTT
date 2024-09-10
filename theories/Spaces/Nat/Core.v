@@ -1,6 +1,6 @@
 Require Import Basics.Overture Basics.Tactics Basics.PathGroupoids
   Basics.Decidable Basics.Trunc Basics.Equivalences Basics.Nat
-  Basics.Classes Types.Prod Types.Sum Types.Sigma.
+  Basics.Classes Basics.Iff Types.Prod Types.Sum Types.Sigma.
 Export Basics.Nat.
 
 Local Set Universe Minimization ToSet.
@@ -64,7 +64,7 @@ Definition nat_pow n m := nat_iter m (nat_mul n) 1.
 
 (** *** Maximum and minimum *)
 
-(** The maximum [nat_max n m] of two natural numbers [n] and [m]. *) 
+(** The maximum [nat_max n m] of two natural numbers [n] and [m]. *)
 Fixpoint nat_max n m :=
   match n, m with
   | 0 , _ => m
@@ -119,14 +119,6 @@ Fixpoint nat_gcd a b :=
   match a with
   | O => b
   | S a' => nat_gcd (b mod a'.+1) a'.+1
-  end.
-
-(** *** Factorial *)
-
-Fixpoint factorial n := 
-  match n with
-  | 0 => 1
-  | S n => S n * factorial n
   end.
 
 (** ** Comparison predicates *)
@@ -413,7 +405,7 @@ Defined.
 (** Multiplication by [1] on the left is the identity. *)
 Definition nat_mul_one_l@{} n : 1 * n = n
   := nat_add_zero_r _.
-  
+
 (** Multiplication by [1] on the right is the identity. *)
 Definition nat_mul_one_r@{} n : n * 1 = n
   := nat_mul_comm _ _ @ nat_mul_one_l _.
@@ -486,6 +478,14 @@ Defined.
 Global Instance antisymmetric_leq : AntiSymmetric leq := @leq_antisym.
 Global Instance antisymemtric_geq : AntiSymmetric geq
   := fun _ _ p q => leq_antisym q p.
+
+(** Every natural number is zero or greater than zero. *)
+Definition nat_zero_or_gt_zero n : (0 = n) + (0 < n).
+Proof.
+  induction n as [|n IHn].
+  1: left; reflexivity.
+  right; exact _.
+Defined.
 
 (** Being less than or equal to [0] implies being [0]. *)
 Definition path_zero_leq_zero_r n : n <= 0 -> n = 0.
@@ -590,12 +590,13 @@ Hint Immediate leq_lt : typeclass_instances.
 
 Definition lt_trans {n m k} : n < m -> m < k -> n < k
   := fun H1 H2 => leq_lt (lt_leq_lt_trans H1 H2).
+Hint Immediate lt_trans : typeclass_instances.
 
 Global Instance transitive_lt : Transitive lt := @lt_trans.
 Global Instance ishprop_lt n m : IsHProp (n < m) := _.
 Global Instance decidable_lt n m : Decidable (lt n m) := _.
 
-(** *** Basic properties of [>=] *) 
+(** *** Basic properties of [>=] *)
 
 Global Instance reflexive_geq : Reflexive geq := leq_refl.
 Global Instance transitive_geq : Transitive geq := fun x y z p q => leq_trans q p.
@@ -636,7 +637,7 @@ Proof.
   - destruct m.
     + reflexivity.
     + nrapply IHn.
-Defined. 
+Defined.
 
 (** The order in which two numbers are subtracted does not matter. *)
 Definition nat_sub_comm_r@{} n m k : n - m - k = n - k - m.
@@ -652,7 +653,7 @@ Proof.
   srapply equiv_iff_hprop.
   - intro l; induction l.
     + exact (nat_sub_cancel n).
-    + change (m.+1) with (1 + m). 
+    + change (m.+1) with (1 + m).
       lhs nrapply nat_sub_r_add.
       lhs nrapply nat_sub_comm_r.
       by destruct IHl^.
@@ -667,7 +668,7 @@ Defined.
 
 (** We can cancel a left summand when subtracting it from a sum. *)
 Definition nat_add_sub_cancel_l m n : n + m - n = m.
-Proof. 
+Proof.
   induction n as [|n IHn].
   - nrapply nat_sub_zero_r.
   - exact IHn.
@@ -727,7 +728,7 @@ Proof.
   apply IHn.
 Defined.
 
-(** ** Properties of maximum and minimum *) 
+(** ** Properties of maximum and minimum *)
 
 (** *** Properties of maximum *)
 
@@ -766,7 +767,7 @@ Definition nat_max_zero_l@{} n : nat_max 0 n = n := idpath.
 Definition nat_max_zero_r@{} n : nat_max n 0 = n
   := nat_max_comm _ _ @ nat_max_zero_l _.
 
-(** [nat_max n m] is [n] if [m <= n]. *) 
+(** [nat_max n m] is [n] if [m <= n]. *)
 Definition nat_max_l@{} {n m} : m <= n -> nat_max n m = n.
 Proof.
   intros H.
@@ -814,7 +815,7 @@ Defined.
 Definition nat_min_zero_l n : nat_min 0 n = 0 := idpath.
 
 (** [nat_min] of [n] and [0] is [0]. *)
-Definition nat_min_zero_r n : nat_min n 0 = 0:= 
+Definition nat_min_zero_r n : nat_min n 0 = 0:=
   nat_min_comm _ _ @ nat_min_zero_l _.
 
 (** [nat_min n m] is [n] if [n <= m]. *)
@@ -874,7 +875,7 @@ Defined.
 Global Instance leq_mul_r n m l : l < m -> n <= n * m.
 Proof.
   rewrite nat_mul_comm; exact _.
-Defined. 
+Defined.
 
 (** Alternative Characterizations of [<=] *)
 
@@ -1119,6 +1120,17 @@ Proof.
 Defined.
 Hint Immediate nat_mul_r_strictly_monotone : typeclass_instances.
 
+(** Multiplication is strictly monotone in both arguments. *)
+Definition nat_mul_strictly_monotone {n n' m m'}
+  : n < m -> n' < m' -> n * n' < m * m'.
+Proof.
+  intros H1 H2.
+  nrapply (lt_leq_lt_trans (m:=n * m')).
+  1: rapply nat_mul_l_monotone.
+  rapply nat_mul_r_strictly_monotone.
+Defined.
+Hint Immediate nat_mul_strictly_monotone : typeclass_instances.
+
 (** *** Order-reflection *)
 
 (** Addition on the left is order-reflecting. *)
@@ -1189,7 +1201,7 @@ Proof.
   - reflexivity.
   - change (?n.+1 + ?m) with (n + m).+1.
     lhs nrapply nat_sub_succ_l.
-    2: exact (ap nat_succ IHn). 
+    2: exact (ap nat_succ IHn).
     exact _.
 Defined.
 
@@ -1268,7 +1280,7 @@ Proof.
     + rewrite 2 nat_sub_succ_l; exact _.
     + apply equiv_nat_sub_leq in r.
       destruct r^.
-      exact _. 
+      exact _.
 Defined.
 Hint Immediate nat_sub_monotone_r : typeclass_instances.
 
@@ -1410,7 +1422,7 @@ Proof.
   induction m as [|m IHm]; simpl.
   - symmetry.
     apply nat_add_zero_r.
-  - rhs_V nrapply nat_mul_assoc. 
+  - rhs_V nrapply nat_mul_assoc.
     exact (ap _ IHm).
 Defined.
 
@@ -1460,7 +1472,7 @@ Defined.
 
 (** Sometimes using [nat_ind] is not sufficient to prove a statement as it may be difficult to prove [P n -> P n.+1]. We can strengthen the induction hypothesis by assuming that [P m] holds for all [m] less than [n]. This is known as strong induction. *)
 Definition nat_ind_strong@{u} (P : nat -> Type@{u})
-  (IH_strong : forall n, (forall m, m < n -> P m) -> P n) 
+  (IH_strong : forall n, (forall m, m < n -> P m) -> P n)
   : forall n, P n.
 Proof.
   intros n.
@@ -1473,4 +1485,23 @@ Proof.
   - by apply IHn.
   - destruct p.
     by apply IH_strong.
+Defined.
+
+(** ** An induction principle for two variables with a constraint. *)
+Definition nat_double_ind_leq@{u} (P : nat -> nat -> Type@{u})
+  (Hn0 : forall n, P n 0)
+  (Hnn : forall n, P n n)
+  (IH : forall n m, m < n -> (forall m', m' <= n -> P n m') -> P n.+1 m.+1)
+  : forall n m, m <= n -> P n m.
+Proof.
+  intro n; simple_induction n n IHn; intros m H.
+  - destruct (path_zero_leq_zero_r m H)^; clear H.
+    apply Hn0.
+  - destruct m.
+    + apply Hn0.
+    + apply equiv_leq_lt_or_eq in H.
+      destruct H as [H | []].
+      2: apply Hnn.
+      rapply IH.
+      rapply IHn.
 Defined.

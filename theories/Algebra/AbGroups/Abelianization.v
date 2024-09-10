@@ -324,7 +324,7 @@ Arguments abel G : simpl never.
 
 (** The unit of this map is the map [abel_in] which typeclasses can pick up to be a homomorphism. We write it out explicitly here. *)
 Definition abel_unit {G : Group}
-  : GroupHomomorphism G (abel G)
+  : G $-> (abel G)
   := @Build_GroupHomomorphism G (abel G) abel_in _.
 
 Definition grp_homo_abel_rec {G : Group} {A : AbGroup} (f : G $-> A)
@@ -414,4 +414,28 @@ Proof.
   - srapply (groupiso_isabelianization A B grp_homo_id eta).
   - exact _.
   - symmetry; apply homotopic_isabelianization.
+Defined.
+
+(** ** Functoriality *)
+
+Global Instance is0functor_abel : Is0Functor abel.
+Proof.
+  snrapply Build_Is0Functor.
+  intros A B f.
+  snrapply grp_homo_abel_rec.
+  exact (abel_unit $o f).
+Defined.
+
+Global Instance is1functor_abel : Is1Functor abel.
+Proof.
+  snrapply Build_Is1Functor.
+  - intros A B f g p.
+    unfold abel.
+    rapply Abel_ind_hprop.
+    intros x.
+    exact (ap abel_in (p x)).
+  - intros A.
+    by rapply Abel_ind_hprop.
+  - intros A B C f g.
+    by rapply Abel_ind_hprop.
 Defined.

@@ -124,8 +124,9 @@ Proof.
   2-4,6-8: right; intros; discriminate.
   2: by left.
   1,2: nrapply decidable_iff.
-  1,4: nrapply ap.
-  1,3: intros H; by injection H.
+  1,3: split.
+  1,3: nrapply ap.
+  1,2: intros H; by injection H.
   1,2: exact _.
 Defined.
 
@@ -625,6 +626,17 @@ Proof.
     f_ap.
     apply eisretr.
 Defined.
+
+(** In particular, homotopic maps have homotopic iterations. *)
+Definition int_iter_homotopic (n : Int) {A} (f f' : A -> A) `{!IsEquiv f} `{!IsEquiv f'}
+  (h : f == f')
+  : int_iter f n == int_iter f' n
+  := int_iter_commute_map f f' idmap h n.
+
+(** [int_iter f n x] doesn't depend on the proof that [f] is an equivalence. *)
+Definition int_iter_agree (n : Int) {A} (f : A -> A) {ief ief' : IsEquiv f}
+  : forall x, @int_iter A f ief n x = @int_iter A f ief' n x
+  := int_iter_homotopic n f f (fun _ => idpath).
 
 Definition int_iter_invariant (n : Int) {A} (f : A -> A) `{!IsEquiv f}
   (P : A -> Type)

@@ -1,6 +1,6 @@
 Require Import Basics.Overture Basics.Tactics Basics.Equivalences.
 Require Import Types.Sigma Types.Forall Types.Paths.
-Require Import WildCat.Core WildCat.EquivGpd.
+Require Import WildCat.Core WildCat.EquivGpd WildCat.Universe.
 Require Import Algebra.AbGroups.AbelianGroup Algebra.AbGroups.Abelianization.
 Require Import Algebra.Groups.FreeGroup.
 Require Import Spaces.List.Core.
@@ -35,6 +35,14 @@ Arguments FreeAbGroup S : simpl never.
 Definition freeabgroup_in {S : Type} : S -> FreeAbGroup S
   := abel_unit o freegroup_in.
 
+Definition FreeAbGroup_rec {S : Type} {A : AbGroup} (f : S -> A)
+  : FreeAbGroup S $-> A
+  := grp_homo_abel_rec (FreeGroup_rec _ _ f).
+
+Definition FreeAbGroup_rec_beta_in {S : Type} {A : AbGroup} (f : S -> A)
+  : FreeAbGroup_rec f o freeabgroup_in == f
+  := fun _ => idpath.
+
 (** The abelianization of a free group on a set is a free abelian group on that set. *)
 Global Instance isfreeabgroupon_isabelianization_isfreegroup `{Funext}
   {S : Type} {G : Group} {A : AbGroup} (f : S -> G) (g : G $-> A)
@@ -55,7 +63,10 @@ Defined.
 Global Instance isfreeabgroup_freeabgroup `{Funext} (S : Type)
   : IsFreeAbGroup (FreeAbGroup S).
 Proof.
-  exists S.
-  exists (abel_unit (G:=FreeGroup S) o freegroup_in).
+  exists S, freeabgroup_in.
   srapply isfreeabgroupon_isabelianization_isfreegroup.
 Defined.
+
+(** Functoriality follows from the functoriality of [abel] and [FreeGroup]. *)
+Global Instance is0functor_freeabgroup : Is0Functor FreeAbGroup := _.
+Global Instance is1functor_freeabgroup : Is1Functor FreeAbGroup := _.

@@ -175,11 +175,20 @@ Definition ab_tensor_prod_rec {A B C : AbGroup}
 Proof.
   unfold ab_tensor_prod.
   snrapply grp_quotient_rec.
-  - snrapply grp_homo_abel_rec.
-    snrapply FreeGroup_rec.
+  - snrapply FreeAbGroup_rec.
     exact (uncurry f).
   - unfold normalsubgroup_subgroup.
     apply ab_tensor_prod_rec_helper; assumption.
+Defined.
+
+(** A special case that arises. *)
+Definition ab_tensor_prod_rec' {A B C : AbGroup}
+  (f : A -> (B $-> C))
+  (l : forall a a' b, f (a + a') b = f a b + f a' b)
+  : ab_tensor_prod A B $-> C.
+Proof.
+  refine (ab_tensor_prod_rec f _ l).
+  intro a; apply grp_homo_op.
 Defined.
 
 (** We give an induction principle for an hprop-valued type family [P].  It may be surprising at first that we only require [P] to hold for the simple tensors [tensor a b] and be closed under addition.  It automatically follows that [P 0] holds (since [tensor 0 0 = 0]) and that [P] is closed under negation (since [tensor -a b = - tensor a b]). This induction principle says that the simple tensors generate the tensor product as a semigroup. *)
@@ -337,6 +346,22 @@ Definition issig_Biadditive {A B C : Type} `{SgOp A, SgOp B, SgOp C}
   : _ <~> Biadditive A B C
   := ltac:(issig).
 
+Definition biadditive_ab_tensor_prod {A B C : AbGroup}
+  : (ab_tensor_prod A B $-> C) -> Biadditive A B C.
+Proof.
+  intros f.
+  exists (fun x y => f (tensor x y)).
+  snrapply Build_IsBiadditive.
+  - intros b a a'; simpl.
+    lhs nrapply (ap f).
+    1: nrapply tensor_dist_r.
+    nrapply grp_homo_op.
+  - intros a a' b; simpl.
+    lhs nrapply (ap f).
+    1: nrapply tensor_dist_l.
+    nrapply grp_homo_op.
+Defined.
+
 (** The universal property of the tensor product is that biadditive maps between abelian groups are in one-to-one corresondance with maps out of the tensor product. In this sense, the tensor product is the most perfect object describing biadditive maps between two abelian groups. *)
 Definition equiv_ab_tensor_prod_rec `{Funext} (A B C : AbGroup)
   : Biadditive A B C <~> (ab_tensor_prod A B $-> C).
@@ -344,17 +369,7 @@ Proof.
   snrapply equiv_adjointify.
   - intros [f [l r]].
     exact (ab_tensor_prod_rec f r (fun a a' b => l b a a')).
-  - intros f.
-    exists (fun x y => f (tensor x y)).
-    snrapply Build_IsBiadditive.
-    + intros b a a'; simpl.
-      lhs nrapply (ap f).
-      1: nrapply tensor_dist_r.
-      nrapply grp_homo_op.
-    + intros a a' b; simpl.
-      lhs nrapply (ap f).
-      1: nrapply tensor_dist_l.
-      nrapply grp_homo_op.
+  - snrapply biadditive_ab_tensor_prod.
   - intros f.
     snrapply equiv_path_grouphomomorphism.
     snrapply ab_tensor_prod_ind_homotopy.
@@ -375,15 +390,12 @@ Definition functor_ab_tensor_prod {A B A' B' : AbGroup}
   (f : A $-> A') (g : B $-> B')
   : ab_tensor_prod A B $-> ab_tensor_prod A' B'.
 Proof.
-  snrapply ab_tensor_prod_rec.
-  - intros a b.
-    exact (tensor (f a) (g b)).
-  - intros a b b'; hnf.
-    rewrite grp_homo_op.
-    by rewrite tensor_dist_l.
+  snrapply ab_tensor_prod_rec'.
+  - intro a.
+    exact (grp_homo_tensor_l (f a) $o g).
   - intros a a' b; hnf.
     rewrite grp_homo_op.
-    by rewrite tensor_dist_r.
+    nrapply tensor_dist_r.
 Defined.
 
 (** 2-functoriality of the tensor product. *)
@@ -489,28 +501,14 @@ Defined.
 (** In order to be more efficient whilst unfolding definitions, we break up the definition of a twist map into its components. *)
 
 Local Definition ab_tensor_prod_twist_map {A B C : AbGroup}
-  : A -> ab_tensor_prod B C -> ab_tensor_prod B (ab_tensor_prod A C).
+  : A -> (ab_tensor_prod B C $-> ab_tensor_prod B (ab_tensor_prod A C)).
 Proof.
   intros a.
-  snrapply ab_tensor_prod_rec.
-  - intros b c.
-    exact (tensor b (tensor a c)).
-  - intros b c c'; hnf.
-    lhs nrapply ap.
-    1: nrapply tensor_dist_l.
-    nrapply tensor_dist_l.
+  snrapply ab_tensor_prod_rec'.
+  - intros b.
+    exact (grp_homo_tensor_l b $o grp_homo_tensor_l a).
   - intros b b' c; hnf.
     nrapply tensor_dist_r.
-Defined.
-
-Arguments ab_tensor_prod_twist_map {A B C} _ _ /.
-
-Local Definition ab_tensor_prod_twist_map_additive_r {A B C : AbGroup}
-  (a : A) (b b' : ab_tensor_prod B C)
-  : ab_tensor_prod_twist_map a (b + b')
-    = ab_tensor_prod_twist_map a b + ab_tensor_prod_twist_map a b'.
-Proof.
-  intros; nrapply grp_homo_op.
 Defined.
 
 Local Definition ab_tensor_prod_twist_map_additive_l {A B C : AbGroup}
@@ -532,9 +530,8 @@ Defined.
 Definition ab_tensor_prod_twist {A B C}
   : ab_tensor_prod A (ab_tensor_prod B C) $-> ab_tensor_prod B (ab_tensor_prod A C).
 Proof.
-  snrapply ab_tensor_prod_rec.
+  snrapply ab_tensor_prod_rec'.
   - exact ab_tensor_prod_twist_map. 
-  - exact ab_tensor_prod_twist_map_additive_r.
   - exact ab_tensor_prod_twist_map_additive_l.
 Defined.
 
@@ -593,10 +590,8 @@ Proof.
   - nrapply grp_homo_tensor_r.
     exact 1%int.
   - snrapply isequiv_adjointify.
-    + snrapply ab_tensor_prod_rec.
+    + snrapply ab_tensor_prod_rec'.
       * exact grp_pow_homo.
-      * intros a z z'; cbn beta.
-        nrapply grp_homo_op.
       * intros a a' z; cbn beta.
         nrapply (grp_homo_op (ab_mul z)).
     + hnf.
@@ -687,5 +682,129 @@ Global Instance ismonoidal_ab_tensor_prod
 Global Instance issymmmetricmonoidal_ab_tensor_prod
   : IsSymmetricMonoidal AbGroup ab_tensor_prod abgroup_Z
   := {}.
+
+(** ** Preservation of Coequalizers *)
+
+(** The tensor product of abelian groups preserves coequalizers, meaning that the coequalizer of two tensored groups is the tensor of the coequalizer. We show this is the case on the left and the right. *)
+
+(** Tensor products preserve coequalizers on the right. *)
+Definition grp_iso_ab_tensor_prod_coeq_l A {B C} (f g : B $-> C)
+  : ab_coeq (fmap01 ab_tensor_prod A f) (fmap01 ab_tensor_prod A g)
+    $<~> ab_tensor_prod A (ab_coeq f g).
+Proof.
+  snrapply cate_adjointify.
+  - snrapply ab_coeq_rec.
+    + rapply (fmap01 ab_tensor_prod A).
+      nrapply ab_coeq_in.
+    + refine (_^$ $@ fmap02 ab_tensor_prod _ _ $@ _).
+      1,3: rapply fmap01_comp.
+      nrapply ab_coeq_glue.
+  - snrapply ab_tensor_prod_rec'.
+    + intros a.
+      snrapply functor_ab_coeq.
+      1,2: snrapply (grp_homo_tensor_l a).
+      1,2: hnf; reflexivity.
+    + intros a a'; cbn beta.
+      srapply ab_coeq_ind_hprop.
+      intros x.
+      exact (ap (ab_coeq_in
+        (f:=fmap01 ab_tensor_prod A f)
+        (g:=fmap01 ab_tensor_prod A g))
+        (tensor_dist_r a a' x)).
+  - snrapply ab_tensor_prod_ind_homotopy.
+    intros a.
+    srapply ab_coeq_ind_hprop.
+    intros c.
+    reflexivity.
+  - snrapply ab_coeq_ind_homotopy.
+    snrapply ab_tensor_prod_ind_homotopy.
+    reflexivity.
+Defined.
+
+(** The equivalence respects the natural maps from [ab_tensor_prod A C]. *)
+Definition ab_tensor_prod_coeq_l_triangle A {B C} (f g : B $-> C)
+  : grp_iso_ab_tensor_prod_coeq_l A f g $o ab_coeq_in
+    $== fmap01 ab_tensor_prod A ab_coeq_in.
+Proof.
+  snrapply ab_tensor_prod_ind_homotopy.
+  reflexivity.
+Defined.
+
+(** Tensor products preserve coequalizers on the left. *)
+Definition grp_iso_ab_tensor_prod_coeq_r {A B} (f g : A $-> B) C
+  : ab_coeq (fmap10 ab_tensor_prod f C) (fmap10 ab_tensor_prod g C)
+    $<~> ab_tensor_prod (ab_coeq f g) C.
+Proof.
+  refine (braide _ _ $oE _).
+  nrefine (grp_iso_ab_tensor_prod_coeq_l _ f g $oE _).
+  snrapply grp_iso_ab_coeq.
+  1,2: rapply braide.
+  1,2: symmetry; nrapply ab_tensor_swap_natural.
+Defined.
+
+(** The equivalence respects the natural maps from [ab_tensor_prod B C]. *)
+Definition ab_tensor_prod_coeq_r_triangle {A B} (f g : A $-> B) C
+  : grp_iso_ab_tensor_prod_coeq_r f g C $o ab_coeq_in
+    $== fmap10 ab_tensor_prod ab_coeq_in C.
+Proof.
+  snrapply ab_tensor_prod_ind_homotopy.
+  reflexivity.
+Defined.
+
+(** ** Tensor Product of Free Abelian Groups *)
+
+Definition equiv_ab_tensor_prod_freeabgroup X Y
+  : FreeAbGroup (X * Y) $<~> ab_tensor_prod (FreeAbGroup X) (FreeAbGroup Y).
+Proof.
+  srefine (let f:=_ in let g:=_ in cate_adjointify f g _ _).
+  - snrapply FreeAbGroup_rec.
+    intros [x y].
+    exact (tensor (freeabgroup_in x) (freeabgroup_in y)).
+  - snrapply ab_tensor_prod_rec.
+    + intros x.
+      snrapply FreeAbGroup_rec.
+      intros y; revert x.
+      unfold FreeAbGroup.
+      snrapply FreeAbGroup_rec.
+      intros x.
+      apply abel_unit.
+      apply freegroup_in.
+      exact (x, y).
+    + intros x y y'.
+      snrapply grp_homo_op.
+    + intros x x'.
+      rapply Abel_ind_hprop.
+      snrapply (FreeGroup_ind_homotopy _ (f' := ab_homo_add _ _)).
+      intros y.
+      lhs nrapply FreeGroup_rec_beta.
+      lhs nrapply grp_homo_op.
+      snrapply (ap011 (+) _^ _^).
+      1,2: nrapply FreeGroup_rec_beta.
+  - snrapply ab_tensor_prod_ind_homotopy.
+    intros x.
+    change (f $o g $o grp_homo_tensor_l x $== grp_homo_tensor_l x).
+    rapply Abel_ind_hprop.
+    change (@abel_in ?G) with (grp_homo_map (@abel_unit G)).
+    repeat change (cat_comp (A:=AbGroup) ?f ?g) with (cat_comp (A:=Group) f g).
+    change (forall y, grp_homo_map ?f (abel_unit y) = grp_homo_map ?g (abel_unit y))
+      with (cat_comp (A:=Group) f abel_unit $== cat_comp (A:=Group) g abel_unit).
+    rapply FreeGroup_ind_homotopy.
+    intros y; revert x.
+    change (f $o g $o grp_homo_tensor_r (freeabgroup_in y) $== grp_homo_tensor_r (freeabgroup_in y)).
+    rapply Abel_ind_hprop.
+    change (@abel_in ?G) with (grp_homo_map (@abel_unit G)).
+    repeat change (cat_comp (A:=AbGroup) ?f ?g) with (cat_comp (A:=Group) f g).
+    change (forall y, grp_homo_map ?f (abel_unit y) = grp_homo_map ?g (abel_unit y))
+      with (cat_comp (A:=Group) f abel_unit $== cat_comp (A:=Group) g abel_unit).
+    rapply FreeGroup_ind_homotopy.
+    intros x.
+    reflexivity.
+  - rapply Abel_ind_hprop.
+    change (GpdHom (A:=Hom(A:=Group) (FreeGroup (X * Y)) _)
+      (cat_comp (A:=Group) (g $o f) (@abel_unit (FreeGroup (X * Y))))
+      (@abel_unit (FreeGroup (X * Y)))).
+    snrapply FreeGroup_ind_homotopy.
+    reflexivity.
+Defined.
 
 (** TODO: Show that the category of abelian groups is symmetric closed and therefore we have adjoint pair with the tensor and internal hom. This should allow us to prove lemmas such as tensors distributing over coproducts. *)
