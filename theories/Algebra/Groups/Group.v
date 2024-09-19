@@ -88,7 +88,7 @@ End GroupLaws.
 (** TODO: improve this tactic so that it also rewrites and is able to solve basic group lemmas. *)
 Tactic Notation "grp_auto" := hnf; intros; eauto with group_db.
 
-(** * Some basic properties of groups *)
+(** ** Some basic properties of groups *)
 
 (** Groups are pointed sets with point the identity. *)
 Global Instance ispointed_group (G : Group)
@@ -676,7 +676,7 @@ Global Instance is0functor_postcomp_grouphomomorphism {A B C : Group} (h : B $->
   : Is0Functor (@cat_postcomp Group _ _ A B C h).
 Proof.
   apply Build_Is0Functor.
-  intros [f ?] [g ?] p a ; exact (ap h (p a)).
+  intros f g p a ; exact (ap h (p a)).
 Defined.
 
 Global Instance is0functor_precomp_grouphomomorphism
@@ -831,20 +831,24 @@ Proof.
 Defined.
 
 (** Maps into the direct product can be built by mapping separately into each factor. *)
-Proposition grp_prod_corec {G H K : Group}
-            (f : GroupHomomorphism K G)
-            (g : GroupHomomorphism K H)
-  : GroupHomomorphism K (grp_prod G H).
+Proposition grp_prod_corec {G H K : Group} (f : K $-> G) (g : K $-> H)
+  : K $-> (grp_prod G H).
 Proof.
   snrapply Build_GroupHomomorphism.
-  - exact (fun x:K => (f x, g x)).
+  - exact (fun x : K => (f x, g x)).
   - intros x y.
-    refine (path_prod' _ _ ); try apply grp_homo_op.
+    apply path_prod'; apply grp_homo_op.
 Defined.
+
+(** [grp_prod_corec] satisfies a definitional naturality property. *)
+Definition grp_prod_corec_natural {X Y A B : Group}
+  (f : X $-> Y) (g0 : Y $-> A) (g1 : Y $-> B)
+  : grp_prod_corec g0 g1 $o f $== grp_prod_corec (g0 $o f) (g1 $o f)
+  := fun _ => idpath.
 
 (** The left factor injects into the direct product. *)
 Definition grp_prod_inl {H K : Group}
-  : GroupHomomorphism H (grp_prod H K)
+  : H $-> (grp_prod H K)
   := grp_prod_corec grp_homo_id grp_homo_const.
 
 (** The left injection is an embedding. *)
@@ -858,7 +862,7 @@ Defined.
 
 (** The right factor injects into the direct product. *)
 Definition grp_prod_inr {H K : Group}
-  : GroupHomomorphism K (grp_prod H K)
+  : K $-> (grp_prod H K)
   := grp_prod_corec grp_homo_const grp_homo_id.
 
 (** The right injection is an embedding. *)
@@ -905,6 +909,15 @@ Proof.
   snrapply Build_GroupHomomorphism.
   1: exact snd.
   intros ? ?; reflexivity.
+Defined.
+
+(** Pairs in direct products can be decomposed *)
+Definition grp_prod_decompose {G H : Group} (g : G) (h : H)
+  : (g, h) = ((g, group_unit) : grp_prod G H) * (group_unit, h).
+Proof.
+  snrapply path_prod; symmetry.
+  - snrapply grp_unit_r.
+  - snrapply grp_unit_l.
 Defined.
 
 (** The second projection is a surjection. *)
