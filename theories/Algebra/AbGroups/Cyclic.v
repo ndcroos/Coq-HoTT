@@ -17,8 +17,10 @@ Proof.
   apply ap, abgroup_Z_ab_mul.
 Defined.
 
-(** Recursion principle for `cyclic`. *)
+Definition int_to_abgroup_Z (a : Int) : abgroup_Z := a.
 
+(** Recursion principle for `cyclic`. *)
+(*
 Definition cyclic_rec (n : nat) {G : Group} (g : G) (p : grp_pow g n = mon_unit)
   : GroupHomomorphism (cyclic n) G.
 Proof.
@@ -28,8 +30,19 @@ Proof.
   intros x y.
   strip_truncations.
   destruct y as [a H].
-  change (ab_mul n a) in H.
+  change abgroup_Z in a.
+  change (ab_mul n (a : abgroup_Z)) in H.
+
+
+  set (a' := int_to_abgroup_Z a).
+
+  
+  change (a : Int) with (a : abgroup_Z) in *.
+
+  rewrite .
+  abgroup_Z_ab_mul.
 Defined.
+*)
 
 (*
 Definition cyclic_rec_beta_in (n k : nat) {G : Group} (g : G)
@@ -38,7 +51,7 @@ Definition cyclic_rec_beta_in (n k : nat) {G : Group} (g : G)
   := idpath.s
 *)
 
-
+(*
 (** Induction principle for `cyclic`. *)
 Definition cyclic_ind_hprop (n : nat) (P : cyclic n -> Type)
   `{forall x, IsHProp (P x)}
@@ -49,6 +62,7 @@ Proof.
   srapply grp_quotient_ind_hprop.
   unfold cyclic_in in H1.
 Defined.
+*)
 
 (*
 (** Induction principle for `cyclic` landing in a homotopy of group homomorphisms. *)
@@ -64,7 +78,7 @@ Definition cyclic_ind_homotopy_op (n : nat) {A : AbGroup}
   : forall x, f x = f' x + f'' x
   := cyclic_ind_homotopy n _ (ab_homo_add f' f'') p.
 *)
-
+(*
 Definition cyclic_in_mod (n : nat) (x : nat)
   : cyclic_in n x = cyclic_in n (x mod n)%nat.
 Proof.
@@ -72,3 +86,4 @@ Proof.
 Defined.
 
 Definition cyclic_in_divides n m : (n | m)%nat -> cyclic_in n m = mon_unit.
+*)
